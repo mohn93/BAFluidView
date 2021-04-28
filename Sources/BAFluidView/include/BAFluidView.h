@@ -33,6 +33,27 @@ Changes the fill color of the wave animation
  */
 @property(strong,nonatomic) UIColor *fillColor;
 
+@property (strong,nonatomic) CAGradientLayer *gradientLayer;
+
+
+/**
+Changes the fill color of the wave animation
+ */
+@property(strong,nonatomic) UIColor *startColor;
+
+@property(assign,nonatomic) BOOL isGradient;
+
+
+/**
+Changes the fill color of the wave animation
+ */
+@property(strong,nonatomic) UIColor *endColor;
+
+/**
+Changes the fill color of the wave animation
+ */
+@property(assign,nonatomic) CGFloat waveSpeed; 
+
 /**
  Changes the stroke color of the wave animation
  */
@@ -127,6 +148,8 @@ This method lets you choose to what level you want the fluidVIew to increase or 
  Determines the percentage to fill to (decimal number)
  */
 - (void)fillTo:(NSNumber*)fillPercentage;
+
+- (void)setGradientColors:(UIColor *)startColor endColor:(UIColor *)endColor;
 
 /**
  This method lets you keep the fluid view at it's starting elevation, but creates the wave crest animation

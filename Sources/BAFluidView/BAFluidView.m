@@ -37,6 +37,8 @@ NSString * const kBAFluidViewCMMotionUpdate = @"BAFluidViewCMMotionUpdate";
 
 @property (strong,nonatomic) CAShapeLayer *lineLayer;
 
+
+
 @property (strong,nonatomic) NSArray *amplitudeArray;
 @property (assign,nonatomic) NSInteger startingAmplitude;
 
@@ -83,6 +85,7 @@ NSString * const kBAFluidViewCMMotionUpdate = @"BAFluidViewCMMotionUpdate";
         self.minAmplitude = aMinAmplitude;
         self.amplitudeIncrement = aAmplitudeIncrement;
         self.amplitudeArray = [self createAmplitudeOptions];
+        self.waveSpeed = 1.0;
     }
     return self;
 }
@@ -170,8 +173,21 @@ NSString * const kBAFluidViewCMMotionUpdate = @"BAFluidViewCMMotionUpdate";
 #pragma mark - Custom Accessors
 
 - (void)setFillColor:(UIColor *)fillColor{
+    _isGradient = NO;
+
     _fillColor = fillColor;
     self.lineLayer.fillColor = [fillColor CGColor];
+}
+
+
+- (void)setGradientColors:(UIColor *)startColor endColor:(UIColor *)endColor{
+    _startColor = startColor;
+    _endColor = endColor;
+    _isGradient = YES;
+//    self.gradientLayer.locations = @[[NSNumber numberWithInt:0.0], [NSNumber numberWithInt:1.0]];
+    self.gradientLayer.startPoint = CGPointMake(0.0, 0.5);
+    self.gradientLayer.endPoint = CGPointMake(1.0, 0.5);
+    self.gradientLayer.colors = @[(id)[startColor CGColor],(id)[endColor CGColor]];
 }
 
 - (void)setStrokeColor:(UIColor *)strokeColor{
@@ -232,8 +248,11 @@ NSString * const kBAFluidViewCMMotionUpdate = @"BAFluidViewCMMotionUpdate";
     // create the wave layer and make it blue
     self.clipsToBounds = YES;
     self.lineLayer = [CAShapeLayer layer];
+    self.gradientLayer = [CAGradientLayer layer];
+
     self.lineLayer.fillColor = [UIColor colorWithHex:0x6BB9F0].CGColor;
     self.lineLayer.strokeColor = [UIColor colorWithHex:0x6BB9F0].CGColor;
+    
     
     //default wave properties
     self.fillAutoReverse = YES;
@@ -254,6 +273,11 @@ NSString * const kBAFluidViewCMMotionUpdate = @"BAFluidViewCMMotionUpdate";
     self.lineLayer.anchorPoint= CGPointMake(0, 0);
     CGRect frame = CGRectMake(0, CGRectGetHeight(self.bounds), self.finalX, CGRectGetHeight(self.rootView.frame));
     self.lineLayer.frame = frame;
+    
+    self.gradientLayer.anchorPoint= CGPointMake(0, 0);
+
+    self.gradientLayer.frame = CGRectMake(0, 0, self.finalX, CGRectGetHeight(self.rootView.frame));;
+
     //    self.lineLayer.transform = CATransform3DMakeScale(1.02, 1.02, 1);
     
     //fill level
@@ -281,7 +305,11 @@ NSString * const kBAFluidViewCMMotionUpdate = @"BAFluidViewCMMotionUpdate";
         self.rollLayer = CALayer.layer;
         
         //add linelayer to this layer now
+        if (_isGradient){
+            [self.rollLayer addSublayer:self.gradientLayer];
+        }else{
         [self.rollLayer addSublayer:self.lineLayer];
+        }
         [self.layer addSublayer:self.rollLayer];
     }
     
@@ -305,7 +333,7 @@ NSString * const kBAFluidViewCMMotionUpdate = @"BAFluidViewCMMotionUpdate";
         horizontalAnimation.values = @[@(self.lineLayer.position.x-self.waveLength*2),@(self.lineLayer.position.x-self.waveLength)];
         
         
-        horizontalAnimation.duration = 1.0;
+        horizontalAnimation.duration = _waveSpeed;
         horizontalAnimation.repeatCount = HUGE;
         horizontalAnimation.removedOnCompletion = NO;
         horizontalAnimation.fillMode = kCAFillModeForwards;
@@ -324,12 +352,21 @@ NSString * const kBAFluidViewCMMotionUpdate = @"BAFluidViewCMMotionUpdate";
                                                              selector:@selector(updateWaveCrestAnimation)
                                                              userInfo:nil
                                                               repeats:YES];
+        
         [self.waveCrestTimer fire];
         //check if we're adding tiltAnimations, otherwise add straight to view
         if(self.roll){
             [self startTiltAnimation];
         } else {
-            [self.layer addSublayer:self.lineLayer];
+            if (!self.isGradient)
+            {
+                [self.layer addSublayer:self.lineLayer];
+            } else {
+                self.gradientLayer.mask = self.lineLayer;
+                [self.layer addSublayer:self.gradientLayer];
+            }
+
+            
         }
         
         self.animating = YES;
@@ -429,7 +466,7 @@ NSString * const kBAFluidViewCMMotionUpdate = @"BAFluidViewCMMotionUpdate";
     self.lineLayer.anchorPoint= CGPointMake(0, 0);
     CGRect frame = CGRectMake(0, CGRectGetHeight(self.bounds), self.finalX, CGRectGetHeight(self.rootView.frame));
     self.lineLayer.frame = frame;
-    
+    self.gradientLayer.frame = frame;
     //need to grab the presentation again as a base
     self.initialFill = YES;
     
@@ -566,6 +603,7 @@ NSString * const kBAFluidViewCMMotionUpdate = @"BAFluidViewCMMotionUpdate";
     
     //growing
     else{
+
         for (NSInteger j = self.startingAmplitude; j <= finalAmplitude; j+=self.amplitudeIncrement) {
             //create a UIBezierPath along distance
             UIBezierPath* line = [UIBezierPath bezierPath];
@@ -582,9 +620,8 @@ NSString * const kBAFluidViewCMMotionUpdate = @"BAFluidViewCMMotionUpdate";
             [line closePath];
             
             [values addObject:(id)line.CGPath];
+
         }
-        
-        
     }
     
     self.startingAmplitude = finalAmplitude;
